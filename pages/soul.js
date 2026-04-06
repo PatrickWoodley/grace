@@ -128,6 +128,10 @@ export default function SoulPage() {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [email, setEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState("");
+
   useEffect(() => {
     const saved = localStorage.getItem("grace_answers");
     if (saved) {
@@ -184,6 +188,45 @@ export default function SoulPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  async function submitEmail() {
+    setEmailStatus("");
+
+    if (!email.trim()) {
+      setEmailStatus("Please enter your email.");
+      return;
+    }
+
+    setSavingEmail(true);
+
+    try {
+      const response = await fetch("/api/save-soul", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          soulMd,
+          soulData: draftData,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      setEmailStatus("Saved. Next we can send this to your inbox.");
+      setEmail("");
+    } catch (error) {
+      setEmailStatus(error.message || "Something went wrong.");
+    } finally {
+      setSavingEmail(false);
+    }
   }
 
   if (!draftData) {
@@ -460,6 +503,65 @@ export default function SoulPage() {
           }
           editing={editing}
         />
+      </div>
+
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #eee",
+          borderRadius: "14px",
+          padding: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Email your SOUL.md</h2>
+        <p style={{ color: "#666", marginBottom: "16px", lineHeight: 1.6 }}>
+          Want this version saved for later? Enter your email and we’ll save
+          this SOUL.md for future delivery and future Grace tools.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            style={{
+              flex: "1 1 280px",
+              padding: "12px 14px",
+              fontSize: "1rem",
+              borderRadius: "8px",
+              border: "1px solid #ddd",
+            }}
+          />
+
+          <button
+            onClick={submitEmail}
+            disabled={savingEmail}
+            style={{
+              padding: "12px 18px",
+              fontSize: "1rem",
+              borderRadius: "8px",
+              border: "none",
+              background: "#111",
+              color: "#fff",
+              cursor: savingEmail ? "default" : "pointer",
+              opacity: savingEmail ? 0.7 : 1,
+            }}
+          >
+            {savingEmail ? "Saving..." : "Email me my SOUL.md"}
+          </button>
+        </div>
+
+        {emailStatus ? (
+          <p style={{ marginTop: "12px", color: "#666" }}>{emailStatus}</p>
+        ) : null}
       </div>
 
       <div
